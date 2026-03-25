@@ -2,10 +2,10 @@ classdef BaseTrack
 % 基本的跟踪轨迹类，统一跟踪算法输出接口
 
     properties
-        TrackID             % 跟踪ID
-        StartMoment         % 开始时间
-        TimeLast            % 持续时间
-        Dim                 % 跟踪信息维度
+        TrackID             % 跟踪ID int
+        StartMoment         % 开始时间 double or datetime
+        NLast               % 持续次数 int
+        Dim                 % 跟踪信息维度 int
         TrackInfo           % 跟踪信息 TimeLast x Dim 矩阵
     end
 
@@ -30,7 +30,7 @@ classdef BaseTrack
 
             % 添加新行
             obj.TrackInfo = [obj.TrackInfo; newInfo];
-            obj.TimeLast = obj.TimeLast + 1;
+            obj.NLast = obj.NLast + 1;
         end
 
         function obj = update(obj, newInfo)
@@ -52,7 +52,7 @@ classdef BaseTrack
             end
 
             % 检查是否有最后一行
-            if obj.TimeLast == 0
+            if obj.NLast == 0
                 error('当前轨迹没有信息行，无法修改');
             end
 
