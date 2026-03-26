@@ -3,18 +3,18 @@ classdef BaseTrack
 
     properties
         TrackID             % 跟踪ID int
-        StartMoment         % 开始时间 double or datetime
         NLast               % 持续次数 int
         Dim                 % 跟踪信息维度 int
-        TrackInfo           % 跟踪信息 TimeLast x Dim 矩阵
+        MomentInfo          % 跟踪时刻 NLast x 1 double 或 datetime 向量
+        TrackInfo           % 跟踪信息 NLast x Dim 矩阵
     end
 
     methods
-        function obj = add(obj, newInfo)
+        function obj = add(obj, newInfo, newMoment)
             % 新增一行信息，持续时间加1
-            % 输入: newInfo - 1 x Dim 的行向量，或 Dimx1 的列向量
-            if nargin < 2
-                error('新增TrackInfo需要提供新增信息行');
+            % 输入: newInfo - 1 x Dim 的行向量，或 Dim x 1 的列向量
+            if nargin < 3
+                error('新增TrackInfo需要提供新增信息行和跟踪时刻');
             end
 
             % 确保 newInfo 是行向量
@@ -31,6 +31,7 @@ classdef BaseTrack
             % 添加新行
             obj.TrackInfo = [obj.TrackInfo; newInfo];
             obj.NLast = obj.NLast + 1;
+            obj.MomentInfo = [obj.MomentInfo; newMoment];
         end
 
         function obj = update(obj, newInfo)

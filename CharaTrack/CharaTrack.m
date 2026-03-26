@@ -3,9 +3,8 @@ classdef CharaTrack < BaseClass.BaseTrack
     % the amplitudes are not normalized, consider it
 
     properties
-        CntMoment               % 当前时刻, double or datetime
-        MomentHis               % history of moments, double
-        PeriodDuration            % time duration of period, double
+        CntMoment               % current moment, double or datetime
+        PeriodDuration          % time duration of period, double
 
         NumPoints               % number of points, int
         PointSet                % set of points, NumPoints * D_dim double
@@ -18,60 +17,75 @@ classdef CharaTrack < BaseClass.BaseTrack
     end
 
     methods
-        function obj = CharaTrack(inCharaMea, inID, inT)
-            %UNTITLED Construct an instance of this class
-            %   Detailed explanation goes here
-            if ~exist('inT', 'var'), inT = 1;
-            elseif isempty(inT), inT = 1; end
+        function obj = CharaTrack(inCharaMea, inID, inTcnt, inTdur)
+            % Construct an instance of CharaTrack class
+            % Input:
+            %   inCharaMea: input of characterized measurement, CharaMea
+            %   inID: target ID, int
+            %   inTcnt: current moment, double or datetime
+            %   inTdur: duration of period, double or duration
 
+            if ~exist('inTcnt', 'var'), inTcnt = 1;
+            elseif isempty(inTcnt), inTcnt = 1; end
+            if ~exist('inTdur', 'var'), inTdur = 1;
+            elseif isempty(inTdur), inTdur = 1; end
+
+            % information of BaseTrack 
             obj.TrackID = inID;
             obj.Dim = inCharaMea.D_dim;
+            obj.N_last = 1;
+            obj.MomentInfo = inTcnt;
+
             obj.NumPoints = inCharaMea.num_points;
             obj.PointSet = inCharaMea.point_set;
             obj.AmpSet = inCharaMea.amp_set;
             obj.Vels = zeros(1, obj.Dim);
-            obj.PeriodDuration = inT;
-            obj.N_last = 1;
+            obj.PeriodDuration = inTdur;
+            
             obj.PointsHis = cell(1, 1);
-            obj.PointsHis{1, 1} = obj.point_set;
-            [~, peak_idx] = max(obj.amp_set);
-            obj.PeakofPoints = obj.point_set(peak_idx, :);
+            obj.PointsHis{1, 1} = obj.PointSet;
+            [~, peak_idx] = max(obj.AmpSet);
+            obj.PeakofPoints = obj.PointSet(peak_idx, :);
             obj.PeakHis = obj.PeakofPoints;
+            obj.TrackInfo = obj.PeakofPoints;
             obj.Ps = 0.3;
         end
 
-        function obj = predict(obj, inT)
-            if ~exist('inT', 'var'), inT = 1;
-            elseif isempty(inT), inT = 1; end
+        function obj = predict(obj, inTdur)
+            % predict the CharaTrack in the next moment
+            if ~exist('inTdur', 'var') || isempty(inTdur), inTdur = 1; end
 
-            obj.T_ver = inT;
-            obj.point_set = obj.point_set + obj.Vels * inT;
+            obj.PeriodDuration = inTdur;
+            obj.CntMoment = obj.CntMoment + inTdur;
+            obj.PointSet = obj.PointSet + obj.Vels * inTdur;
             obj.Ps = obj.Ps - 0.1;
-            obj.N_last = obj.N_last + 1;
-            obj.PointsHis{end + 1, 1} = obj.point_set;
 
-            [~, peak_idx] = max(obj.amp_set);
-            obj.PeakofPoints = obj.point_set(peak_idx, :);
+            [~, peak_idx] = max(obj.AmpSet);
+            obj.PeakofPoints = obj.PointSet(peak_idx, :);
             obj.PeakHis = [obj.PeakHis; obj.PeakofPoints];
+            obj.PointsHis{end + 1, 1} = obj.PointSet;
+
+            obj.add(obj.PeakofPoints, obj.CntMoment);
         end
 
         function obj = update(obj, Mea_ass)
-            old_centroid = sum(obj.point_set .* obj.amp_set, 1)...
-                ./ sum(obj.amp_set);
-            mea_centroid = sum(Mea_ass.point_set .* Mea_ass.amp_set, 1)...
+            old_centroid = sum(obj.PointSet .* obj.AmpSet, 1) ./ ...
+                sum(obj.AmpSet);
+            mea_centroid = sum(Mea_ass.point_set .* Mea_ass.amp_set, 1) ...
                 ./ sum(Mea_ass.amp_set);
-            obj.Vels = (mea_centroid - old_centroid) / obj.T_ver;
+            obj.Vels = (mea_centroid - old_centroid) / obj.PeriodDuration;
 
-            obj.num_points = Mea_ass.num_points;
-            obj.point_set = Mea_ass.point_set;
-            obj.amp_set = Mea_ass.amp_set;
-            obj.PointsHis{obj.N_last, 1} = obj.point_set;
+            obj.NumPoints = Mea_ass.num_points;
+            obj.PointSet = Mea_ass.point_set;
+            obj.AmpSet = Mea_ass.amp_set;
+            obj.PointsHis{obj.Nlast, 1} = obj.PointSet;
             obj.Ps = obj.Ps + 0.2;
             if (obj.Ps > 1), obj.Ps = 1; end
 
-            [~, peak_idx] = max(obj.amp_set);
-            obj.PeakofPoints = obj.point_set(peak_idx, :);
-            obj.PeakHis(end, :) = obj.PeakofPoints;
+            [~, peak_idx] = max(obj.AmpSet);
+            obj.PeakofPoints = obj.PointSet(peak_idx, :);
+            % obj.PeakHis(end, :) = obj.PeakofPoints;
+            obj.update(obj.PeakofPoints);
         end
     end
 end
