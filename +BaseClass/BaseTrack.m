@@ -10,6 +10,37 @@ classdef BaseTrack
     end
 
     methods
+        function obj = BaseTrack(inID, inDim, inTcnt, inInfo)
+            arguments
+                inID (1,1) double = 0      % 可选：跟踪ID，0为无效目标
+                inDim (1,1) double = 2     % 可选：维度，默认2
+                inTcnt (1,1) = 1     % 可选：时间计数，默认1
+                inInfo (1,:) double = zeros(1, inDim)   % 可选：初始跟踪信息
+            end
+
+            % 属性赋值
+            obj.TrackID = inID;
+            obj.Dim = inDim;
+            obj.NLast = 1;
+            obj.MomentInfo = inTcnt;
+
+            % 处理跟踪信息
+            if isempty(inInfo)
+                % 如果未提供，创建全零行向量
+                inInfo = zeros(1, inDim);
+            else
+                % 确保是行向量
+                if iscolumn(inInfo)
+                    inInfo = inInfo';
+                end
+                % 检查维度匹配
+                if length(inInfo) ~= inDim
+                    error("输入跟踪信息的长度 (%d) 与维度 (%d) 不匹配", length(inInfo), inDim);
+                end
+            end
+            obj.TrackInfo = inInfo;
+        end
+
         function obj = add(obj, newInfo, newMoment)
             % 新增一行信息，持续时间加1
             % 输入: newInfo - 1 x Dim 的行向量，或 Dim x 1 的列向量

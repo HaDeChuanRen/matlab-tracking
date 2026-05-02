@@ -1,26 +1,28 @@
-function beta_ass = chara_associate(chara_tar, chara_mea, ...
+function beta_ass = chara_associate(charaTar, charaMea, ...
     Cov_mat, N_grid, Sigma_rate)
-%UNTITLED Summary of this function goes here
-%   Detailed explanation goes here
+% chara_associate 计算特征目标与特征观测的关联概率
 
-    D_dim = chara_tar.D_dim;
-    if ~exist("Cov_mat", "var"), Cov_mat = eye(D_dim);
-    elseif isempty(Cov_mat), Cov_mat = eye(D_dim); end
+    arguments
+        charaTar (1,1) CharaTrack       % 输入的特征目标
+        charaMea (1,1) CharaMea         % 输入的特征观测
+        Cov_mat (:,:) double = []       % 关联协方差矩阵 Dim * Dim
+        N_grid (:,1) double = []        % KL散度网格点数
+        Sigma_rate (1,1) double = 3     % 关联方差扩大倍数
+    end
 
-    if ~exist('N_grid', 'var'), N_grid = 10 * ones(D_dim, 1);
-    elseif isempty(N_grid), N_grid = 10 * ones(D_dim, 1);
+    D_dim = charaTar.Dim;
+    if isempty(Cov_mat), Cov_mat = eye(D_dim); end
+
+    if isempty(N_grid), N_grid = 10 * ones(D_dim, 1);
     elseif (length(N_grid) < D_dim)
         N_grid = [N_grid; N_grid(end) * ones(D_dim - length(N_grid), 1)];
     end
 
-    if ~exist('Sigma_rate', 'var'), Sigma_rate  = 3;
-    elseif isempty(Sigma_rate), Sigma_rate = 3; end
+    point_tar = charaTar.PointSet;
+    amp_tar = charaTar.AmpSet / sum(charaTar.AmpSet);
 
-    point_tar = chara_tar.point_set;
-    amp_tar = chara_tar.amp_set / sum(chara_tar.amp_set);
-
-    point_mea = chara_mea.point_set;
-    amp_mea = chara_mea.amp_set / sum(chara_mea.amp_set);
+    point_mea = charaMea.PointSet;
+    amp_mea = charaMea.AmpSet / sum(charaMea.AmpSet);
 
     bound_tar = zeros(D_dim, 2);
     for d_idx = 1 : D_dim

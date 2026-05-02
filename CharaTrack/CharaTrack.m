@@ -25,28 +25,35 @@ classdef CharaTrack < BaseClass.BaseTrack
             %   inTcnt: current moment, double or datetime
             %   inTdur: duration of period, double or duration
 
-            if ~exist('inTcnt', 'var'), inTcnt = 1;
-            elseif isempty(inTcnt), inTcnt = 1; end
-            if ~exist('inTdur', 'var'), inTdur = 1;
-            elseif isempty(inTdur), inTdur = 1; end
+            arguments
+                inCharaMea (1,1) CharaMea
+                inID (1,1) double
+                inTcnt (1,1) = 1    % 可选：时间计数，默认1
+                inTdur (1,:) = 1   % 可选：周期持续时间，默认1
+            end
 
-            % information of BaseTrack 
+            % information of BaseTrack
+            D_dim = inCharaMea.Dim;
+            obj = obj@BaseClass.BaseTrack(inID, D_dim, inTcnt, zeros(1, D_dim));
             obj.TrackID = inID;
-            obj.Dim = inCharaMea.D_dim;
-            obj.N_last = 1;
+            obj.Dim = inCharaMea.Dim;
+            obj.NLast = 1;
             obj.MomentInfo = inTcnt;
 
-            obj.NumPoints = inCharaMea.num_points;
-            obj.PointSet = inCharaMea.point_set;
-            obj.AmpSet = inCharaMea.amp_set;
+            % information of the character of targets
+            obj.NumPoints = inCharaMea.NumPoints;
+            obj.PointSet = inCharaMea.PointSet;
+            obj.AmpSet = inCharaMea.AmpSet;
             obj.Vels = zeros(1, obj.Dim);
             obj.PeriodDuration = inTdur;
-            
+
             obj.PointsHis = cell(1, 1);
             obj.PointsHis{1, 1} = obj.PointSet;
             [~, peak_idx] = max(obj.AmpSet);
             obj.PeakofPoints = obj.PointSet(peak_idx, :);
             obj.PeakHis = obj.PeakofPoints;
+
+            % use the peak of points as the information of Track
             obj.TrackInfo = obj.PeakofPoints;
             obj.Ps = 0.3;
         end
@@ -71,14 +78,14 @@ classdef CharaTrack < BaseClass.BaseTrack
         function obj = update(obj, Mea_ass)
             old_centroid = sum(obj.PointSet .* obj.AmpSet, 1) ./ ...
                 sum(obj.AmpSet);
-            mea_centroid = sum(Mea_ass.point_set .* Mea_ass.amp_set, 1) ...
-                ./ sum(Mea_ass.amp_set);
+            mea_centroid = sum(Mea_ass.PointSet .* Mea_ass.AmpSet, 1) ...
+                ./ sum(Mea_ass.AmpSet);
             obj.Vels = (mea_centroid - old_centroid) / obj.PeriodDuration;
 
-            obj.NumPoints = Mea_ass.num_points;
-            obj.PointSet = Mea_ass.point_set;
-            obj.AmpSet = Mea_ass.amp_set;
-            obj.PointsHis{obj.Nlast, 1} = obj.PointSet;
+            obj.NumPoints = Mea_ass.NumPoints;
+            obj.PointSet = Mea_ass.PointSet;
+            obj.AmpSet = Mea_ass.AmpSet;
+            obj.PointsHis{obj.N_last, 1} = obj.PointSet;
             obj.Ps = obj.Ps + 0.2;
             if (obj.Ps > 1), obj.Ps = 1; end
 

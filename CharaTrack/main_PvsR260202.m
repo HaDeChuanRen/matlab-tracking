@@ -1,11 +1,14 @@
+% calculate the probability of association with different methods as the distance changes, and compare the performance of different methods
 clc; clear; close all; rng(1);
+addpath(genpath('C:\study\Codes\Matlab\Tracking'));
 
-num_r = 20;
-num_mc = 3000;
-r_vec = 10 .^ linspace(-log10(4), log10(4), num_r)';
-var_x = 1;
-var_y = 1;
-Cov_mat = diag([var_x, var_y]);
+% parameters setting
+num_r = 20;         % number of distance points
+num_mc = 3;     % number of Monte Carlo simulations for each distance point
+r_vec = 10 .^ linspace(-log10(4), log10(4), num_r)'; % distance vector
+var_x = 1;      % variance of x dimension for the target distribution
+var_y = 0.5;    % variance of y dimension for the target distribution
+Cov_mat = diag([var_x, var_y]); % covariance matrix for the association methods
 
 lambda_tar = 7;
 kappa_cov = 10;
@@ -41,19 +44,19 @@ for mc_idx = 1 : num_mc
         P_Cov(r_idx, mc_idx) = exp(-(delta_cf / Cov_mat * delta_cf') / 2);
         Poicen_ChaMea = CharaMea(centroid_cen, 1);
         PoiRef_ChaMea = CharaMea(centroid_ref, 1);
-        Poicen_ChaTar = CharaTarget(Poicen_ChaMea, 101, 1);
+        Poicen_ChaTar = CharaTrack(Poicen_ChaMea, 101, 1);
         % PoiRef_ChaTar = CharaTarget(PoiRef_ChaMea, 102, 1);
         P_Point2Point(r_idx, mc_idx) = chara_associate(Poicen_ChaTar, ...
             PoiRef_ChaMea, Cov_mat, [100; 100], 5);
 
         Setcen_ChaMea = CharaMea(Set_Cen, ones(num_Points * 3, 1));
-        Setcen_ChaTar = CharaTarget(Setcen_ChaMea, 201, 1);
+        Setcen_ChaTar = CharaTrack(Setcen_ChaMea, 201, 1);
         Setref_ChaMea = CharaMea(Set_Ref, ones(num_Points * 3, 1));
         % Setref_ChaTar = CharaTarget(Setref_ChaMea, 202, 1);
         P_Cha2Point(r_idx, mc_idx) = chara_associate(Setcen_ChaTar, ...
-            PoiRef_ChaMea,Cov_mat, [100; 100], 5);
+            PoiRef_ChaMea, Cov_mat, [100; 100], 5);
         P_Cha2Cha(r_idx, mc_idx) = chara_associate(Setcen_ChaTar, ...
-            Setref_ChaMea, Cov_mat / 5, [100; 100], 5);
+            Setref_ChaMea, Cov_mat, [100; 100], 5);
     end
 end
 run_time = toc;
@@ -61,7 +64,7 @@ delete(h_waitbar);
 
 if (run_time > 3600)
     % 获取当前时刻作为mat文件名的一部分
-    timestamp = datestr(now, 'yyyymmdd_HHMMSS');
+    timestamp = char(datetime('now'), 'yyyymmdd_HHMMSS');
     save(['save_mat/PvsR_' timestamp '.mat'], 'P_Eu', 'P_Cov', ...
         'P_Point2Point', 'P_Cha2Point','P_Cha2Cha', 'r_vec');
 end
