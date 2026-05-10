@@ -45,6 +45,7 @@ classdef CharaTrack < BaseClass.BaseTrack
             obj.PointSet = inCharaMea.PointSet;
             obj.AmpSet = inCharaMea.AmpSet;
             obj.Vels = zeros(1, obj.Dim);
+            obj.CntMoment = inTcnt;
             obj.PeriodDuration = inTdur;
 
             obj.PointsHis = cell(1, 1);
@@ -72,7 +73,7 @@ classdef CharaTrack < BaseClass.BaseTrack
             obj.PeakHis = [obj.PeakHis; obj.PeakofPoints];
             obj.PointsHis{end + 1, 1} = obj.PointSet;
 
-            obj.add(obj.PeakofPoints, obj.CntMoment);
+            obj = obj.base_add(obj.PeakofPoints, obj.CntMoment);
         end
 
         function obj = update(obj, Mea_ass)
@@ -85,14 +86,14 @@ classdef CharaTrack < BaseClass.BaseTrack
             obj.NumPoints = Mea_ass.NumPoints;
             obj.PointSet = Mea_ass.PointSet;
             obj.AmpSet = Mea_ass.AmpSet;
-            obj.PointsHis{obj.N_last, 1} = obj.PointSet;
+            obj.PointsHis{obj.NLast, 1} = obj.PointSet;
             obj.Ps = obj.Ps + 0.2;
             if (obj.Ps > 1), obj.Ps = 1; end
 
             [~, peak_idx] = max(obj.AmpSet);
             obj.PeakofPoints = obj.PointSet(peak_idx, :);
             % obj.PeakHis(end, :) = obj.PeakofPoints;
-            obj.update(obj.PeakofPoints);
+            obj = obj.base_update(obj.PeakofPoints);
         end
     end
 end

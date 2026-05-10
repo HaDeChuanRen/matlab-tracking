@@ -47,7 +47,7 @@ for mc_idx = 1 : num_mc
         Poicen_ChaTar = CharaTrack(Poicen_ChaMea, 101, 1);
         % PoiRef_ChaTar = CharaTarget(PoiRef_ChaMea, 102, 1);
         P_Point2Point(r_idx, mc_idx) = chara_associate(Poicen_ChaTar, ...
-            PoiRef_ChaMea, Cov_mat, [100; 100], 5);
+            PoiRef_ChaMea, Cov_mat, 10, 5);
 
         Setcen_ChaMea = CharaMea(Set_Cen, ones(num_Points * 3, 1));
         Setcen_ChaTar = CharaTrack(Setcen_ChaMea, 201, 1);

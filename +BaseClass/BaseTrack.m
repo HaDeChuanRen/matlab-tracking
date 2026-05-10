@@ -14,14 +14,14 @@ classdef BaseTrack
             arguments
                 inID (1,1) double = 0      % 可选：跟踪ID，0为无效目标
                 inDim (1,1) double = 2     % 可选：维度，默认2
-                inTcnt (1,1) = 1     % 可选：时间计数，默认1
-                inInfo (1,:) double = zeros(1, inDim)   % 可选：初始跟踪信息
+                inTcnt (:,1) = 1     % 可选：时间计数，默认1
+                inInfo (:,:) double = zeros(1, inDim)   % 可选：初始跟踪信息
             end
 
             % 属性赋值
             obj.TrackID = inID;
             obj.Dim = inDim;
-            obj.NLast = 1;
+            obj.NLast = size(inTcnt, 1);
             obj.MomentInfo = inTcnt;
 
             % 处理跟踪信息
@@ -30,18 +30,18 @@ classdef BaseTrack
                 inInfo = zeros(1, inDim);
             else
                 % 确保是行向量
-                if iscolumn(inInfo)
+                if size(inInfo, 1) == inDim
                     inInfo = inInfo';
                 end
                 % 检查维度匹配
-                if length(inInfo) ~= inDim
+                if size(inInfo, 2) ~= inDim
                     error("输入跟踪信息的长度 (%d) 与维度 (%d) 不匹配", length(inInfo), inDim);
                 end
             end
             obj.TrackInfo = inInfo;
         end
 
-        function obj = add(obj, newInfo, newMoment)
+        function obj = base_add(obj, newInfo, newMoment)
             % 新增一行信息，持续时间加1
             % 输入: newInfo - 1 x Dim 的行向量，或 Dim x 1 的列向量
             if nargin < 3
@@ -65,7 +65,7 @@ classdef BaseTrack
             obj.MomentInfo = [obj.MomentInfo; newMoment];
         end
 
-        function obj = update(obj, newInfo)
+        function obj = base_update(obj, newInfo)
             % 修改最后一行的信息
             % 输入: newInfo - 1 x Dim 的行向量，或 Dimx1 的列向量
             if nargin < 2
