@@ -12,7 +12,7 @@ classdef CharaTrack < BaseClass.BaseTrack
         PeakofPoints            % peak of all points, 1 * D_dim double
         Vels                    % velocity of each dimension, 1 * D_dim double
         PointsHis               % history of target, N_last * 1 cell
-        PeakHis                 % history of peak point, N_last * D_dim double
+        AmpsHis                 % history of peak point, N_last * D_dim double
         Ps                      % probability of survive, double
     end
 
@@ -52,7 +52,7 @@ classdef CharaTrack < BaseClass.BaseTrack
             obj.PointsHis{1, 1} = obj.PointSet;
             [~, peak_idx] = max(obj.AmpSet);
             obj.PeakofPoints = obj.PointSet(peak_idx, :);
-            obj.PeakHis = obj.PeakofPoints;
+            obj.AmpsHis{1, 1} = obj.AmpSet;
 
             % use the peak of points as the information of Track
             obj.TrackInfo = obj.PeakofPoints;
@@ -70,8 +70,8 @@ classdef CharaTrack < BaseClass.BaseTrack
 
             [~, peak_idx] = max(obj.AmpSet);
             obj.PeakofPoints = obj.PointSet(peak_idx, :);
-            obj.PeakHis = [obj.PeakHis; obj.PeakofPoints];
             obj.PointsHis{end + 1, 1} = obj.PointSet;
+            obj.AmpsHis{end + 1, 1} = obj.AmpSet;
 
             obj = obj.base_add(obj.PeakofPoints, obj.CntMoment);
         end
@@ -87,6 +87,7 @@ classdef CharaTrack < BaseClass.BaseTrack
             obj.PointSet = Mea_ass.PointSet;
             obj.AmpSet = Mea_ass.AmpSet;
             obj.PointsHis{obj.NLast, 1} = obj.PointSet;
+            obj.AmpsHis{obj.NLast, 1} = obj.AmpSet;
             obj.Ps = obj.Ps + 0.2;
             if (obj.Ps > 1), obj.Ps = 1; end
 

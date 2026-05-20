@@ -1,7 +1,7 @@
 % 构建跟踪算法测试场景并可视化展示
 % used to build the test scene for tracking algorithm and show it visibly
 clear; clc; close all;
-rng(1);
+rng(2);
 addpath(genpath('C:\study\Codes\Matlab\Tracking'));
 
 % plot parameters
@@ -41,7 +41,7 @@ ylim_u = ymin + yrange + sample_time * max([vyrange + vymin, 0]) * T;
 %% create targets and clutters in the scene
 lambda_tar = 4;
 lambda_clu = 10;
-observe_cov = [0.1 0.1];
+observe_cov = [0.01 0.01];
 No_tol = 1;
 
 % state transition matrix
@@ -101,6 +101,10 @@ numColors = 12;
 
 for t_time = 1 : sample_time
     waitbar(t_time / sample_time);
+    disp(t_time);
+    if t_time == 4
+        1;
+    end
 
     % obtian measurements of this moment
     dets_t = dets_all{t_time};
@@ -140,7 +144,7 @@ for t_time = 1 : sample_time
         continue;
     elseif (M_mea > 0) && (K_tar == 0)
         for m_idx = 1 : M_mea
-            CharaTar_k = CharaTrack(ChaMeas_t(m_idx), No_tol);
+            CharaTar_k = CharaTrack(ChaMeas_t(m_idx), No_tol, t_time);
             No_tol = No_tol + 1;
             CharaTar_set = [CharaTar_set; CharaTar_k];
         end
@@ -167,45 +171,54 @@ for t_time = 1 : sample_time
         end
         beta_mat(beta_mat < P_G) = 0;
         udet_vec = P_G * ones(K_tar, 1);
+        % figure(9); pcolor(beta_mat); colormap gray; shading flat;
         beta_mat = [beta_mat, udet_vec];
-        % figure(11); pcolor(beta_mat); colormap gray; shading flat;
 
         % SPA algorithm iterate
-        % xi_mat = [ones(K_tar, M_mea); ones(1, M_mea)];
-        % phimat_itel = beta_mat(:, 1 : M_mea) ./ (beta_mat(:, 1 + M_mea) + eps);
-        % vmat_itel = zeros(K_tar, M_mea);
-        % for l_iter = 1 : L_ite
-        %     vmat_itel = xi_mat(1 : K_tar, :) ./ (xi_mat(K_tar + 1, :) + ...
-        %         sum(phimat_itel .* xi_mat(1 : K_tar, :), 1) - ...
-        %         phimat_itel .* xi_mat(1 : K_tar, :));
-        %     phimat_itel = beta_mat(:, 1 : M_mea) ./ (beta_mat(:, M_mea + 1) +...
-        %         sum(beta_mat(:, 1 : M_mea) .* vmat_itel, 2) - beta_mat(:, ...
-        %         1 : M_mea) .* vmat_itel);
-        % end
-        % % obtain the association probability
-        % Promat_a = zeros(K_tar, M_mea + 1);
-        % Promat_b = zeros(K_tar + 1, M_mea);
-        % Promat_a(:, 1 : M_mea) = beta_mat(:, 1 : M_mea) .* vmat_itel ./ ...
-        %     (beta_mat(:, M_mea + 1) + sum(beta_mat(:, 1 : M_mea)...
-        %     .* vmat_itel, 2));
-        % Promat_a(:, M_mea + 1) = beta_mat(:, M_mea + 1) ./ ...
-        %     (beta_mat(:, M_mea + 1) + sum(beta_mat(:, 1 : M_mea)...
-        %     .* vmat_itel, 2));
-        % % figure(12); pcolor(Promat_a); colormap gray; shading flat;
-        % [~, Pidx_max] = max(Promat_a, [], 2);
+        xi_mat = [ones(K_tar, M_mea); ones(1, M_mea)];
+        phimat_itel = beta_mat(:, 1 : M_mea) ./ (beta_mat(:, 1 + M_mea) + eps);
+        vmat_itel = zeros(K_tar, M_mea);
+        for l_iter = 1 : L_ite
+            vmat_itel = xi_mat(1 : K_tar, :) ./ (xi_mat(K_tar + 1, :) + ...
+                sum(phimat_itel .* xi_mat(1 : K_tar, :), 1) - ...
+                phimat_itel .* xi_mat(1 : K_tar, :));
+            phimat_itel = beta_mat(:, 1 : M_mea) ./ (beta_mat(:, M_mea + 1) +...
+                sum(beta_mat(:, 1 : M_mea) .* vmat_itel, 2) - beta_mat(:, ...
+                1 : M_mea) .* vmat_itel);
+        end
+        % obtain the association probability
+        Promat_a = zeros(K_tar, M_mea + 1);
+        Promat_b = zeros(K_tar + 1, M_mea);
+        Promat_a(:, 1 : M_mea) = beta_mat(:, 1 : M_mea) .* vmat_itel ./ ...
+            (beta_mat(:, M_mea + 1) + sum(beta_mat(:, 1 : M_mea)...
+            .* vmat_itel, 2));
+        Promat_a(:, M_mea + 1) = beta_mat(:, M_mea + 1) ./ ...
+            (beta_mat(:, M_mea + 1) + sum(beta_mat(:, 1 : M_mea)...
+            .* vmat_itel, 2));
+        % figure(12); imagesc(Promat_a); colormap gray; shading flat;
 
-        [~, Pidx_max] = max(beta_mat, [], 2);
-        cost_beta = - log(beta_mat(:, 1 : end - 1) + eps);
+        cost_beta = - log(beta_mat + eps);
         assign_mat = Hungarian(cost_beta);
-        for a_idx = 1 : size(assign_mat, 1)
-            if (Pidx_max(assign_mat(a_idx, 1)) == M_mea + 1 || ...
-                    beta_mat(assign_mat(a_idx, 1), assign_mat(a_idx, 2)) < P_G)
-                assign_mat(a_idx, 2) = M_mea + 1;
+
+        % obtain vector of association
+        assign_vec = zeros(K_tar, 1);
+        for k_idx = 1 : K_tar
+            % assign_k = find(assign_mat(k_idx, :));
+            [mpro_k, assign_k] = max(Promat_a(k_idx, :));
+            if (assign_k == M_mea + 1 || beta_mat(k_idx, assign_k) <= P_G)
+                continue;
+            end
+            if mpro_k >= 0.5
+                assign_vec(k_idx) = assign_k;
+            else
+                [~, ass_kRe] = max(Promat_a(:, assign_k));
+                if ass_kRe == k_idx
+                    assign_vec(k_idx) = assign_k;
+                end
             end
         end
-        assign_mat(assign_mat(:, 2) == M_mea + 1, :) = [];
-        K_ass = assign_mat(:, 1);
-        M_ass = assign_mat(:, 2);
+        K_ass = setdiff((1 : K_tar)', find(assign_vec == 0));
+        M_ass = assign_vec(assign_vec > 0);
         for km_idx = 1 : length(K_ass)
             k_ass = K_ass(km_idx);
             m_ass = M_ass(km_idx);
@@ -216,7 +229,7 @@ for t_time = 1 : sample_time
         % create new targets by measurements
         for m_idx = 1 : M_mea
             if ismember(m_idx, M_ass), continue; end
-            TarObj_n = CharaTrack(ChaMeas_t(m_idx), No_tol);
+            TarObj_n = CharaTrack(ChaMeas_t(m_idx), No_tol, t_time);
             No_tol = No_tol + 1;
             CharaTar_set = [CharaTar_set; TarObj_n];
         end
@@ -225,7 +238,7 @@ for t_time = 1 : sample_time
         K_ban = [];
         for k_idx = 1 : K_tar
             % if ismember(k_idx, K_ass), continue; end
-            if CharaTar_set(k_idx).Ps <= 0
+            if CharaTar_set(k_idx).Ps <= eps
                 K_ban(end + 1) = k_idx;
             end
         end
@@ -233,15 +246,16 @@ for t_time = 1 : sample_time
         K_tar = length(CharaTar_set);
         K_show = [];
         for k_idx = 1 : K_tar
-            if CharaTar_set(k_idx).Ps >= 0.5
+            if CharaTar_set(k_idx).Ps >= 0.6
                 K_show(end + 1) = k_idx;
             end
         end
 
+        allTarColors = hsv(length(K_show));
         for ks_idx = K_show
             [~, locB] = ismember(CharaTar_set(ks_idx).TrackID, allShowNo);
             if locB > 0
-                allShowTrack(locB).base_add(...
+                allShowTrack(locB) = allShowTrack(locB).base_add(...
                     CharaTar_set(ks_idx).TrackInfo(end, :), ...
                     CharaTar_set(ks_idx).MomentInfo(end));
             else
@@ -253,6 +267,12 @@ for t_time = 1 : sample_time
                     CharaTar_set(ks_idx).MomentInfo, ...
                     CharaTar_set(ks_idx).TrackInfo);
             end
+            h_fig1; hold on;
+            plot(CharaTar_set(ks_idx).TrackInfo(:, 1), ...
+                CharaTar_set(ks_idx).TrackInfo(:, 2), '-', ...
+                'Color', LineColors(mod(CharaTar_set(ks_idx).TrackID, 10)...
+                 + 1, :), 'LineWidth', lw);
+            h_fig1; hold off;
         end
     end
     1;

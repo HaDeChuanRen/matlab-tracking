@@ -19,8 +19,9 @@ function [detSets, ampSets] = charaDets2D(shapeChar, detLoct, detSize)
         case '+'
             % 加号
             detSets = zeros(5, 2);
-            detSets(1:3) = detLoct + [detSize(1) * [-1/2; 0; 1/2], zeros(3, 1)];
-            detSets(4:5) = detLoct + [zeros(2, 1), detSize(2) * [-1/2; 1/2]];
+            detSets(1:3, :) = detLoct + [detSize(1) * [-1/2; 0; 1/2], ...
+                zeros(3, 1)];
+            detSets(4:5, :) = detLoct + [zeros(2, 1), detSize(2) * [-1/2; 1/2]];
         case 'd'
             % 菱形
             pointsNum = 4;
@@ -29,8 +30,8 @@ function [detSets, ampSets] = charaDets2D(shapeChar, detLoct, detSize)
                 detSize(2) * sin(thetaVec)];
         case 's'
             % 矩形
-            detSets = detLoct + [detSize(1) * [1, -1, 1, -1], ...
-                detSize(2) * [1, -1, -1, 1]];
+            detSets = detLoct + [detSize(1) * [1; -1; 1; -1], ...
+                detSize(2) * [1; -1; -1; 1]];
         case '>'
             % 右三角
             pointsNum = 3;
