@@ -1,7 +1,7 @@
 % 构建跟踪算法测试场景并可视化展示
 % used to build the test scene for tracking algorithm and show it visibly
 clear; clc; close all;
-rng(2);
+rng(3);
 addpath(genpath('C:\study\Codes\Matlab\Tracking'));
 
 % plot parameters
@@ -88,11 +88,12 @@ end
 
 %% Tracking and Plotting
 % initializing
-Cov_mat = diag([1, 1]);
+Cov_mat = diag([0.2, 0.2]);
 P_G = 1e-6;
 L_ite = 5;
 CharaTar_set = [];
 allShowNo = [];
+weakRate = 0.8;
 
 tic;
 h_fig1 = figure(1);
@@ -102,7 +103,7 @@ numColors = 12;
 for t_time = 1 : sample_time
     waitbar(t_time / sample_time);
     disp(t_time);
-    if t_time == 4
+    if t_time == 3
         1;
     end
 
@@ -152,12 +153,12 @@ for t_time = 1 : sample_time
     elseif (M_mea == 0) && (K_tar > 0)
         % prediction
         for k_idx = 1 : K_tar
-            CharaTar_set(k_idx) = CharaTar_set(k_idx).predict();
+            CharaTar_set(k_idx) = CharaTar_set(k_idx).predict(1, weakRate);
         end
     elseif (M_mea > 0) && (K_tar > 0)
         % prediction
         for k_idx = 1 : K_tar
-            CharaTar_set(k_idx) = CharaTar_set(k_idx).predict();
+            CharaTar_set(k_idx) = CharaTar_set(k_idx).predict(1, weakRate);
         end
 
         % obtain probabilities of association
@@ -165,7 +166,7 @@ for t_time = 1 : sample_time
         for k_idx = 1 : K_tar
             for m_idx = 1 : M_mea
                 beta_km = chara_associate(CharaTar_set(k_idx), ...
-                    ChaMeas_t(m_idx), Cov_mat, 20, 5);
+                    ChaMeas_t(m_idx), Cov_mat, 10, 5);
                 beta_mat(k_idx, m_idx) = beta_km;
             end
         end
@@ -204,14 +205,18 @@ for t_time = 1 : sample_time
         assign_vec = zeros(K_tar, 1);
         for k_idx = 1 : K_tar
             % assign_k = find(assign_mat(k_idx, :));
-            [mpro_k, assign_k] = max(Promat_a(k_idx, :));
+            [mpro_k, assign_k] = max(beta_mat(k_idx, :));
             if (assign_k == M_mea + 1 || beta_mat(k_idx, assign_k) <= P_G)
+                continue;
+            end
+            [~, maxPro_m] = max(beta_mat(:, assign_k));
+            if (maxPro_m ~= k_idx)
                 continue;
             end
             if mpro_k >= 0.5
                 assign_vec(k_idx) = assign_k;
             else
-                [~, ass_kRe] = max(Promat_a(:, assign_k));
+                [~, ass_kRe] = max(beta_mat(:, assign_k));
                 if ass_kRe == k_idx
                     assign_vec(k_idx) = assign_k;
                 end
@@ -223,7 +228,9 @@ for t_time = 1 : sample_time
             k_ass = K_ass(km_idx);
             m_ass = M_ass(km_idx);
             if ismember(k_ass, K_ass(1 : km_idx - 1)), continue; end
-            CharaTar_set(k_ass) = CharaTar_set(k_ass).update(ChaMeas_t(m_ass));
+            CharaTar_set(k_ass) = ...
+                CharaTar_set(k_ass).update(ChaMeas_t(m_ass), ...
+                beta_mat(k_ass, m_ass));
         end
 
         % create new targets by measurements
@@ -238,15 +245,17 @@ for t_time = 1 : sample_time
         K_ban = [];
         for k_idx = 1 : K_tar
             % if ismember(k_idx, K_ass), continue; end
-            if CharaTar_set(k_idx).Ps <= eps
+            if CharaTar_set(k_idx).Ps <= 0.1
                 K_ban(end + 1) = k_idx;
             end
         end
         CharaTar_set(K_ban) = [];
+
+        % collect tracked targets to be shown
         K_tar = length(CharaTar_set);
         K_show = [];
         for k_idx = 1 : K_tar
-            if CharaTar_set(k_idx).Ps >= 0.6
+            if CharaTar_set(k_idx).Ps >= 0.8
                 K_show(end + 1) = k_idx;
             end
         end
@@ -271,8 +280,12 @@ for t_time = 1 : sample_time
             plot(CharaTar_set(ks_idx).TrackInfo(:, 1), ...
                 CharaTar_set(ks_idx).TrackInfo(:, 2), '-', ...
                 'Color', LineColors(mod(CharaTar_set(ks_idx).TrackID, 10)...
-                 + 1, :), 'LineWidth', lw);
-            h_fig1; hold off;
+                    + 1, :), 'LineWidth', lw);
+            text(CharaTar_set(ks_idx).TrackInfo(end, 1) + 0.1, ...
+                CharaTar_set(ks_idx).TrackInfo(end, 2) + 0.1, ...
+                num2str(CharaTar_set(ks_idx).TrackID), 'Color', ...
+                LineColors(mod(CharaTar_set(ks_idx).TrackID, 10) + 1, :));
+            h_fig1; hold off; title(num2str(t_time));
         end
     end
     1;

@@ -14,6 +14,7 @@ classdef CharaTrack < BaseClass.BaseTrack
         PointsHis               % history of target, N_last * 1 cell
         AmpsHis                 % history of peak point, N_last * D_dim double
         Ps                      % probability of survive, double
+        Pd                      % probability of detection, double
     end
 
     methods
@@ -57,16 +58,18 @@ classdef CharaTrack < BaseClass.BaseTrack
             % use the peak of points as the information of Track
             obj.TrackInfo = obj.PeakofPoints;
             obj.Ps = 0.3;
+            obj.Pd = 0.98;
         end
 
-        function obj = predict(obj, inTdur)
+        function obj = predict(obj, inTdur, weakRate)
             % predict the CharaTrack in the next moment
             if ~exist('inTdur', 'var') || isempty(inTdur), inTdur = 1; end
+            if ~exist('weakRate', 'var') || isempty(weakRate), weakRate = 0.9; end
 
             obj.PeriodDuration = inTdur;
             obj.CntMoment = obj.CntMoment + inTdur;
             obj.PointSet = obj.PointSet + obj.Vels * inTdur;
-            obj.Ps = obj.Ps - 0.1;
+            obj.Ps = obj.Ps * weakRate;  % 预测时生存概率衰减
 
             [~, peak_idx] = max(obj.AmpSet);
             obj.PeakofPoints = obj.PointSet(peak_idx, :);
@@ -76,9 +79,10 @@ classdef CharaTrack < BaseClass.BaseTrack
             obj = obj.base_add(obj.PeakofPoints, obj.CntMoment);
         end
 
-        function obj = update(obj, Mea_ass)
-            old_centroid = sum(obj.PointSet .* obj.AmpSet, 1) ./ ...
-                sum(obj.AmpSet);
+        function obj = update(obj, Mea_ass, assPro)
+            old_centroid = sum(obj.PointsHis{obj.NLast - 1, 1} .* ...
+                obj.AmpsHis{obj.NLast - 1, 1}, 1) ./ ...
+                sum(obj.AmpsHis{obj.NLast - 1, 1});
             mea_centroid = sum(Mea_ass.PointSet .* Mea_ass.AmpSet, 1) ...
                 ./ sum(Mea_ass.AmpSet);
             obj.Vels = (mea_centroid - old_centroid) / obj.PeriodDuration;
@@ -88,8 +92,10 @@ classdef CharaTrack < BaseClass.BaseTrack
             obj.AmpSet = Mea_ass.AmpSet;
             obj.PointsHis{obj.NLast, 1} = obj.PointSet;
             obj.AmpsHis{obj.NLast, 1} = obj.AmpSet;
-            obj.Ps = obj.Ps + 0.2;
-            if (obj.Ps > 1), obj.Ps = 1; end
+            % newPs = 1 - (1 - obj.Ps) * (1 - assPro) / (1 - obj.Pd * ...
+            %     obj.Ps);
+            obj.Ps = obj.Ps * (1 + assPro);
+            if (obj.Ps >= 1), obj.Ps = 1 - 1e-6; end
 
             [~, peak_idx] = max(obj.AmpSet);
             obj.PeakofPoints = obj.PointSet(peak_idx, :);

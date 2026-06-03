@@ -1,13 +1,13 @@
 classdef SPAMHTPlat
     %SPAMHTPLAT 此处显示有关此类的摘要
     %   此处显示详细说明
-    
+
     properties
         hyp_all
         max_num
         d_dim
     end
-    
+
     methods
         function obj = SPAMHTPlat(in_max, in_sigma, in_promote, in_time, ...
                 in_pg, in_lite, in_tcir)
@@ -27,7 +27,6 @@ classdef SPAMHTPlat
             elseif isempty(in_lite), in_lite = 5; end
             if ~exist('in_tcir', 'var'), in_tcir = 1;
             elseif isempty(in_tcir), in_tcir = 1; end
-            
 
             obj.max_num = in_max;
             obj.d_dim = length(in_sigma);
@@ -37,7 +36,7 @@ classdef SPAMHTPlat
                 in_pg, in_lite, in_tcir, obj.max_num, in_promote);
             obj.hyp_all = Tra_hyp;
         end
-        
+
         function [obj, traj_all, target_all] = track(obj, mea_now)
             %METHOD1 此处显示有关此方法的摘要
             %   此处显示详细说明
